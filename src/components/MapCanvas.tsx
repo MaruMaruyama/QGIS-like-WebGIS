@@ -49,6 +49,8 @@ export default function MapCanvas({
     const map = L.map(mapContainerRef.current, {
       center: [35.6895, 139.7450],
       zoom: 13,
+      minZoom: 2,
+      maxZoom: 22,
       zoomControl: false, // Custom placed for desktop feel
       attributionControl: true
     });
@@ -79,7 +81,22 @@ export default function MapCanvas({
     // Initial double click listener to terminate Line/Area/Polygon digitizers
     map.on('dblclick', handleMapDoubleClick);
 
+    // Dynamic Leaflet resizing and redraw sync support for dynamic IFrames & flexible layout adjustments
+    const resizeObserver = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    if (mapContainerRef.current) {
+      resizeObserver.observe(mapContainerRef.current);
+    }
+
+    // Delay size calculation briefly to guarantee container dimensions are settled perfectly
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+
     return () => {
+      resizeObserver.disconnect();
+      clearTimeout(timer);
       map.remove();
       mapInstanceRef.current = null;
     };
@@ -141,10 +158,23 @@ export default function MapCanvas({
         // Fresh creation
         let leafletLayer: L.Layer | null = null;
         if (layer.format === 'xyz_tile' && layer.url) {
+          // Determine realistic maximum native zoom limit per map provider to prevent gray missing boxes at extreme zoom levels.
+          // Leaflet will scale tiles beyond these native limits to support high zoom visualization.
+          let maxNativeZoom = 18;
+          if (layer.id.includes('osm')) {
+            maxNativeZoom = 19;
+          } else if (layer.id.includes('google')) {
+            maxNativeZoom = 22;
+          } else if (layer.id.includes('gsi')) {
+            maxNativeZoom = 18;
+          }
+
           leafletLayer = L.tileLayer(layer.url, {
             attribution: layer.attribution || '',
             opacity: layer.opacity,
-            zIndex: 10
+            zIndex: 10,
+            maxZoom: 22,
+            maxNativeZoom: maxNativeZoom
           });
         } else if (layer.format === 'georeferenced_image' && layer.url && layer.bounds) {
           leafletLayer = L.imageOverlay(layer.url, layer.bounds, {

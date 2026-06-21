@@ -1,0 +1,6 @@
+{
+  "name": "Desktop GIS Studio",
+  "description": "Web-based desktop-style GIS application inspired by QGIS, featuring multi-coordinate CRS support, vector and raster layers, property styling, and attribute table editing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
